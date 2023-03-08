@@ -1,6 +1,7 @@
 import './comicsList.scss';
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import useMarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
@@ -9,37 +10,28 @@ const ComicsList = () => {
 
     const {loading, error, getAllComics} = useMarvelService();
     const [comicsesList, setComicsesList] = useState([]),
-          [offset, setOffset] = useState(6);
+          [offset, setOffset] = useState(20);
 
     
-    const onComicsesList = async () => {
+    const onComicsesList = async (offset) => {
         await getAllComics(offset)
-        .then(setComicsesList)
-    }
-
-    const onNewComicsesList = async (offset) => {
-        await getAllComics(offset)
-                .then(setNewComicsesList)
+        .then(res => setComicsesList(comicsesList => [...comicsesList, ...res]))
+        setOffset(offset => offset + 8)
     }
     
-    useEffect(async () => await onComicsesList(), [])
+    useEffect(async () => await onComicsesList(offset), [])
 
-    const setNewComicsesList = (newComicses) => {
-        setComicsesList(comicsesList => [...comicsesList, ...newComicses]);
-        setOffset(offset => offset + 8);
-    }
     
     function View(comics) {
-        const res = comics.map(comics => {
+        const res = comics.map((comics, i) => {
             const {name, thumbnail, price, id} = comics;
-            const addId = Math.floor(Math.random() * (100 - 1));
             return (
-                <li className="comics__item" key={`${id + addId}`}>
-                    <a href="422">
+                <li className="comics__item" key={i}>
+                    <Link to={`${id}`}>
                         <img src={thumbnail} alt={`There has be a ${name}`} className="comics__item-img"/>
                         <div className="comics__item-name">{name}</div>
                         <div className="comics__item-price">{`${price}$`}</div>
-                    </a>
+                    </Link>
                 </li>
             )
         })
@@ -61,7 +53,7 @@ const ComicsList = () => {
                 className="button button__main button__long"
                 style={{display: `${comicsesList.length >= 22 ? 'none' : 'block'}`}}
                 disabled={loading}
-                onClick={onNewComicsesList}>
+                onClick={() => onComicsesList(offset)}>
                 <div className="inner">load more</div>
             </button>
         </div>

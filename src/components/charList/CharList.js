@@ -23,7 +23,6 @@ const CharList = (props) => {
 
     const onCharactersLoaded = (newChars) => {
         setChars(chars => [...chars, ...newChars]);
-        // setLoading(loading => false);
         setLoadingNewChars(loadingNewChars => false);
         setOffset(offset => offset + 9);
         setLoadedChars(loadedChars => loadedChars + 9)
@@ -101,7 +100,7 @@ const CharList = (props) => {
     }
     
     const items = ViewContent(chars);
-    const Loading = loading ? ViewLoadOrError('spinner') : null;
+    const Loading = loading && chars.length === 0 ? ViewLoadOrError('spinner') : null;
     const LoadingNew = loadingNewChars && !error ? ViewLoadOrError('spinner') : null;
     const Error = error && !loadingNewChars ? ViewLoadOrError('error') : null;
     const ErrorNew = error && loadingNewChars ? ViewLoadOrError('error') : null;

@@ -1,6 +1,7 @@
 import './charInfo.scss';
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 import useMarvelService from '../../services/MarvelService';
@@ -73,7 +74,7 @@ const CharInfo = (props) => {
             return (
                 <li className="char__comics-item"
                     key={`comics${i}`}>
-                    <a href={item.resourceURI}>{item.name}</a>
+                    <Link to={`comics${(item.resourceURI).slice(-5)}`}>{item.name}</Link>
                 </li>
             )
         }))
