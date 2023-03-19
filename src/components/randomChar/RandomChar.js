@@ -1,7 +1,8 @@
 
 import './randomChar.scss';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { CSSTransition, SwitchTransition } from 'react-transition-group';
 import mjolnir from '../../resources/img/mjolnir.png';
 import useMarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
@@ -11,6 +12,7 @@ import ErrorMessage from '../errorMessage/ErrorMessage';
 const RandomChar = () => {
 
     const [char, setChar] = useState(null);
+    const [stateAnimation, setStateAnimation] = useState(true);
     const {clearError, error, loading, getCharacter} = useMarvelService();
 
 
@@ -20,53 +22,57 @@ const RandomChar = () => {
         clearError();
         const id = Math.floor(Math.random() * (1011400-1011000) + 1011000);
         await getCharacter(id)
-            .then(newChar => setChar(newChar))
+            .then(newChar => setChar(newChar), setStateAnimation(stateAnimation => !stateAnimation))
     }
 
     function View(char) {
         const {name, description, thumbnail, homepage, wiki} = char;
         const imgClass = thumbnail.includes('image_not_available') ? {objectFit: 'unset'} : null;
         let descrUpdate;
+        
         if(description.length >= 211){
             descrUpdate = description.slice(0, 210) + '...';
-        } else if(description.length < 5) {
-            descrUpdate = "The character description missing";
-        } else {
+        }  else {
             descrUpdate = description;
         }
     
         return (
             <div className="randomchar__block">
-            <img src={thumbnail} alt="Random character" 
-                 className="randomchar__img"
-                 style={imgClass}/>
-            <div className="randomchar__info">
-                <p className="randomchar__name">{name}</p>
-                <p className="randomchar__descr">
-                    {descrUpdate}
-                </p>
-                <div className="randomchar__btns">
-                    <a href={homepage} className="button button__main">
-                        <div className="inner">homepage</div>
-                    </a>
-                    <a href={wiki} className="button button__secondary">
-                        <div className="inner">Wiki</div>
-                    </a>
+                <img src={thumbnail} alt="Random character" 
+                    className="randomchar__img"
+                    style={imgClass}/>
+                <div className="randomchar__info">
+                    <p className="randomchar__name">{name}</p>
+                    <p className="randomchar__descr">
+                        {descrUpdate}
+                    </p>
+                    <div className="randomchar__btns">
+                        <a href={homepage} className="button button__main">
+                            <div className="inner">homepage</div>
+                        </a>
+                        <a href={wiki} className="button button__secondary">
+                            <div className="inner">Wiki</div>
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
         )
     }
 
-    const errorMessge = error ? ErrorMessage() : null;
-    const spinner = loading ? Spinner() : null;
-    const content = !(loading || error) && char ? View(char) : null;
+    
+    const charOrLoading = char && !loading ? View(char) : Spinner();
+    const content = error ? ErrorMessage() : charOrLoading;
 
     return (
         <div className="randomchar">
-            {errorMessge}
-            {spinner}
-            {content}
+            <SwitchTransition mode='out-in'>
+                <CSSTransition 
+                    timeout={800}
+                    key={stateAnimation}
+                    classNames='randomchar__block'>
+                        {content}
+                </CSSTransition>
+            </SwitchTransition>
             <div className="randomchar__static">
                 <p className="randomchar__title">
                     Random character for today!<br/>

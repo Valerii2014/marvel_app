@@ -5,14 +5,15 @@ import { Link } from 'react-router-dom';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 import useMarvelService from '../../services/MarvelService';
-import Skeleton from '../skeleton/Skeleton'
+import Skeleton from '../skeleton/Skeleton';
+
 
 const CharInfo = (props) => {
 
     const [char, setChar] = useState(null);
-    const {error, loading, getCharacter} = useMarvelService();
+    const {error, loading, getCharacter, clearError} = useMarvelService();
 
-    useEffect(() => {onCharLoad(props.idSelectedChar)}, [props.idSelectedChar])
+    useEffect(() => {clearError(); onCharLoad(props.idSelectedChar)}, [props.idSelectedChar])
 
     const onCharLoad = (id) => {
         if(id){
@@ -23,14 +24,13 @@ const CharInfo = (props) => {
     
     const View = (char) => {
     if(char){
-        let {name, thumbnail, description, homepage, wiki, comics} = char;
+        const {name, thumbnail, description, homepage, wiki, comics} = char;
 
-        let descr = description;
+        const descrUpdate = description === 'There is no description' ? 
+                            "The character description missing" :
+                            description;
+
         const imgClass = thumbnail.includes('image_not_available') ? {objectFit: 'unset'} : null;
-
-        if(description.length < 5) {
-            descr = "The character description missing";
-        } 
 
         return (
             <>
@@ -50,7 +50,7 @@ const CharInfo = (props) => {
                         </div>
                     </div>
                     <div className="char__descr">
-                        {descr}
+                        {descrUpdate}
                     </div>
                     <div className="char__comics">Comics:</div>
                     <ul className="char__comics-list">
@@ -74,7 +74,7 @@ const CharInfo = (props) => {
             return (
                 <li className="char__comics-item"
                     key={`comics${i}`}>
-                    <Link to={`comics${(item.resourceURI).slice(-5)}`}>{item.name}</Link>
+                    <Link to={`comics/${(item.resourceURI).slice(-5)}`}>{item.name}</Link>
                 </li>
             )
         }))
@@ -83,7 +83,7 @@ const CharInfo = (props) => {
     const SkeletonWindow = error || (loading && props.idSelectedChar) || char ? null : Skeleton(),
           Loading = loading && props.idSelectedChar ? Spinner() : null,
           Error = error ? ErrorMessage() : null,
-          Content = char && !loading ? View(char) : null;
+          Content = char && !loading && !error ? View(char) : null;
 
     return (
         <div className="char__info">

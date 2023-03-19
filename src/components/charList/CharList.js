@@ -1,6 +1,7 @@
 import './charList.scss';
 
 import {useState, useEffect, useRef, useMemo} from 'react';
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import PropTypes from 'prop-types';
 import useMarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
@@ -23,19 +24,16 @@ const CharList = (props) => {
 
     const onCharactersLoaded = (newChars) => {
         setChars(chars => [...chars, ...newChars]);
-        setLoadingNewChars(loadingNewChars => false);
+        setLoadingNewChars(false);
         setOffset(offset => offset + 9);
         setLoadedChars(loadedChars => loadedChars + 9)
     }
-
-    // const onCharactersLoading = (offset) => {
-    //     return marvelService.getAllCharacters(offset)
-    // }
 
 
     const onSetCharacters = () => {
         getAllCharacters(offset)
         .then(onCharactersLoaded)
+        
     }
     
     const itemRefs = useRef([]);
@@ -47,32 +45,41 @@ const CharList = (props) => {
     }
 
     const onSetNewCharacters = () => {
+        clearError();
         setLoadingNewChars(true);
         getAllCharacters(offset)
             .then(onCharactersLoaded)
     }
 
     function ViewContent(charsList) {
-        return charsList.map((el, i) => {
+        const charItems = charsList.map((el, i) => {
             if(loadedChars >= i){
                 const {thumbnail, name, id} = el;
                 const imgClass = thumbnail.includes('image_not_available') ? {objectFit: 'unset'} : null;
                 return (
-                    <li className='char__item'
-                        key={id}
-                        ref={el => itemRefs.current[i] = el}        
-                        tabIndex='0'
-                        onKeyDown={(e) => {if(e.code === 'Enter') {focusOnItem(i); props.onSelectedChar(id)}}}
-                        onClick={() => {
-                                        props.onSelectedChar(id)
-                                        focusOnItem(i)
-                                       }}>
-                        <img src={thumbnail} alt={`it is ${name}`} style={imgClass} />
-                        <div className="char__name">{name}</div>
-                    </li>
+                    <CSSTransition timeout={500} key={id} classNames='char__item'>
+                        <li className='char__item'
+                            ref={el => itemRefs.current[i] = el}        
+                            tabIndex='0'
+                            onKeyDown={(e) => {if(e.code === 'Enter') {focusOnItem(i); props.onSelectedChar(id)}}}
+                            onClick={() => {
+                                            props.onSelectedChar(id)
+                                            focusOnItem(i)
+                                        }}>
+                            <img src={thumbnail} alt={`it is ${name}`} style={imgClass} />
+                            <div className="char__name">{name}</div>
+                        </li>
+                    </CSSTransition>
                 )
             }
         })
+        return (
+            <ul className='char__grid'>
+            <TransitionGroup component={null}>
+                {charItems}
+            </TransitionGroup>
+            </ul>
+        )
     }
     
     function ViewLoadOrError(status) {
@@ -90,13 +97,18 @@ const CharList = (props) => {
     
         while (arr.length < 9) {
             arr.push(
-                <li className="char__item" key={arr.length}>
-                    {image}
-                    <div className="char__name">{description}</div>
-                </li>)
+                    <li className="char__item" key={arr.length}>
+                        {image}
+                        <div className="char__name">{description}</div>
+                    </li>
+            )
         }
         
-        return arr;
+        return (
+            <ul className='char__grid'>
+                {arr}
+            </ul>
+        )
     }
     
     const items = ViewContent(chars);
@@ -106,17 +118,17 @@ const CharList = (props) => {
     const ErrorNew = error && loadingNewChars ? ViewLoadOrError('error') : null;
     return (
         <div className="char__list">
-            <ul className="char__grid">
+            
                 {Loading}
                 {Error}
                 {items}
                 {LoadingNew}
                 {ErrorNew}
-            </ul>
+            
             <button 
                 className="button button__main button__long"
                 style={{display: `${chars.length > 63 ? 'none' : 'block'}`}}
-                disabled={loadingNewChars}
+                disabled={loadingNewChars && !error}
                 onClick={onSetNewCharacters}>
                 <div className="inner">load more</div>
             </button>

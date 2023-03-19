@@ -7,8 +7,9 @@
     column-gap: 50px;
     align-items: start;
     &__img {
-        width: 293px;
-        height: 450px;
+        max-width: 293px;
+        max-height: 450px;
+        object-fit:unset;
     }
     &__name {
         font-weight: bold;
@@ -32,6 +33,7 @@
         font-weight: bold;
         font-size: 18px;
         line-height: 24px;
+        cursor: pointer;
         &:hover {
             color: $main-color;
         }

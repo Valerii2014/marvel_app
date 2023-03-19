@@ -30,7 +30,7 @@ const ComicsList = () => {
                     <Link to={`${id}`}>
                         <img src={thumbnail} alt={`There has be a ${name}`} className="comics__item-img"/>
                         <div className="comics__item-name">{name}</div>
-                        <div className="comics__item-price">{`${price}$`}</div>
+                        <div className="comics__item-price">{`${price}`}</div>
                     </Link>
                 </li>
             )
