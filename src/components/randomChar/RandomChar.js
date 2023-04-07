@@ -1,32 +1,39 @@
 
 import './randomChar.scss';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect} from 'react';
+import { Link } from 'react-router-dom';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
 import mjolnir from '../../resources/img/mjolnir.png';
 import useMarvelService from '../../services/MarvelService';
-import Spinner from '../spinner/Spinner';
-import ErrorMessage from '../errorMessage/ErrorMessage';
+import setContent from '../../utils/setContent'
 
 
 const RandomChar = () => {
 
     const [char, setChar] = useState(null);
     const [stateAnimation, setStateAnimation] = useState(true);
-    const {clearError, error, loading, getCharacter} = useMarvelService();
+    const {process, setProcess, getCharacter} = useMarvelService();
 
+    useEffect (() => { updateChar()}, []);
 
-    useEffect(async () => await updateChar(), []);
-
-    const updateChar = async () => {
-        clearError();
+    const updateChar = () => {
         const id = Math.floor(Math.random() * (1011400-1011000) + 1011000);
-        await getCharacter(id)
-            .then(newChar => setChar(newChar), setStateAnimation(stateAnimation => !stateAnimation))
+
+        setProcess('loading');
+        setStateAnimation(!stateAnimation);
+        getCharacter(id)
+            .then(updatedChar)
+            .catch(() => setProcess('error'));
+    }
+
+    const updatedChar = (char) => {
+        setChar(char);
+        setProcess('confirmed');
     }
 
     function View(char) {
-        const {name, description, thumbnail, homepage, wiki} = char;
+        const {name, description, thumbnail} = char;
         const imgClass = thumbnail.includes('image_not_available') ? {objectFit: 'unset'} : null;
         let descrUpdate;
         
@@ -47,12 +54,12 @@ const RandomChar = () => {
                         {descrUpdate}
                     </p>
                     <div className="randomchar__btns">
-                        <a href={homepage} className="button button__main">
+                        <Link to={`/characters/${name}`} className="button button__main">
                             <div className="inner">homepage</div>
-                        </a>
-                        <a href={wiki} className="button button__secondary">
+                        </Link>
+                        <Link to={`/characters/${name}`} className="button button__secondary">
                             <div className="inner">Wiki</div>
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -60,8 +67,8 @@ const RandomChar = () => {
     }
 
     
-    const charOrLoading = char && !loading ? View(char) : Spinner();
-    const content = error ? ErrorMessage() : charOrLoading;
+    // const charOrLoading = char && !loading ? View(char) : Spinner();
+    // const content = error ? ErrorMessage() : charOrLoading;
 
     return (
         <div className="randomchar">
@@ -70,7 +77,7 @@ const RandomChar = () => {
                     timeout={800}
                     key={stateAnimation}
                     classNames='randomchar__block'>
-                        {content}
+                        {setContent(process, () => View(char), char)}
                 </CSSTransition>
             </SwitchTransition>
             <div className="randomchar__static">
@@ -82,7 +89,9 @@ const RandomChar = () => {
                     Or choose another one
                 </p>
                 <button className="button button__main"
-                    onClick={updateChar}>
+                    onClick={updateChar}
+                    disabled={process === 'loading' ? true : false}
+                >
                     <div className="inner">try it</div>
                 </button>
                 <img src={mjolnir} alt="mjolnir" className="randomchar__decoration"/>

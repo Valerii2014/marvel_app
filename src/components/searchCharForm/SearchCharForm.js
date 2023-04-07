@@ -3,58 +3,69 @@ import './searchCharForm.scss';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage as FormikErrorMessage } from 'formik';
-import ErrorMessage from '../errorMessage/ErrorMessage';
 import useMarvelService from '../../services/MarvelService';
 
 
+
+const setContent = (process, char, Component, updateName) => {
+  switch (process) {
+      case 'waiting':
+          return null;
+      case 'loading':
+          return null;
+      case 'confirmed':
+          return Component(char, updateName);
+      case 'error':
+          return (
+            <div className='error'>The character was not found. Check the name and try again</div>
+          );            
+      default:
+          throw new Error('Unexpected process state');
+  }
+}
+
 const SearchCharForm = () => {
 
-  const {getCharacterByName, loading, error, clearError} = useMarvelService();
-
+  const {process, setProcess, getCharacterByName} = useMarvelService();
   const [char, setChar] = useState(null);
-
-  const onNameChecked = (char) => {
-    setChar(char)
-  }
-
-  const onCheckName = async (name) => {
-      clearError();
-      await getCharacterByName(name)
-            .then(onNameChecked)
-      
+  
+  const onLoadChar = async (name) => {
+    await getCharacterByName(name)
+    .then(onLoadedChar)   
   }
   
-  const getCharName = (char) => {
-    if(char.length !== 1) return;
+  const onLoadedChar = (char) => {
+    setChar(char);
+    char.length === 1 ? setProcess('confirmed') : setProcess('error');
+  }
 
+  const getUpdateName = (char) => {
     const name = char[0].name;
-    if(name.length > 15){
-      
+    if(name.length > 15){ 
       return {
         first: name.slice(0, 15),
         second: name.slice(15, name.length)
       }
-      
     }
     return {first: name}
   }
 
+  
 
-  const transformedName = char ? getCharName(char) : null;
-
-  const ErrorContent = error ? <div className='error'><ErrorMessage/></div> : null;
-
-  const FindedChar =  !char ? null : char.length === 1 ?
-                    (<div className='error' style={{'color': '#03710E'}}>
+  const View = (char, updateName) => {
+    const name = updateName(char);
+        return (
+          <div className='error' style={{'color': '#03710E'}}>
                         There is! Visit
-                        {` ${transformedName.first} `}
-                        {transformedName.second ? <br/> : null}
-                        {transformedName.second ? `${transformedName.second} ` : null} 
+                        {` ${name.first} `}
+                        {name.second ? <br/> : null}
+                        {name.second ? `${name.second} ` : null} 
                         page?
-                     </div>) : 
-                      (<div className='error'>The character was not found. Check the name and try again</div>);
+                     </div>
+        ) 
+  }
 
-  const LinkToCharPage = char && char.length === 1 ? 
+  const LinkToCharPage = process === 'confirmed' ? 
                         (<Link to={`/characters/${char[0].name}`}>
                                 <button className="button button__secondary">
                                   <div className="inner">TO PAGE</div>
@@ -65,7 +76,7 @@ const SearchCharForm = () => {
         <Formik
         initialValues={{title: ''}}
         validate={values => {
-          setChar(null)
+          setProcess('waiting')
           const errors = {};
           if (!values.title) {
             errors.title = 'This field is required';
@@ -75,7 +86,7 @@ const SearchCharForm = () => {
           return errors;
         }}
         onSubmit={values => {
-            onCheckName(values.title)
+            onLoadChar(values.title)
         }}>
         
           <Form className='form'>
@@ -91,7 +102,7 @@ const SearchCharForm = () => {
                 
               <div className="form__btns">
                   <button className="button button__main"
-                          disabled={loading}
+                          disabled={process === 'loading' ? true : false}
                           type="submit">
                       <div className="inner">FIND</div>
                   </button>
@@ -99,8 +110,7 @@ const SearchCharForm = () => {
               </div>
             </div>
             <FormikErrorMessage className='error' name="title" component="div" />
-            {FindedChar}
-            {ErrorContent}
+              {setContent(process, char, View, getUpdateName)}
           </Form>
       </Formik>
     )

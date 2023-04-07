@@ -4,29 +4,40 @@ import './infoPage.scss'
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import Spinner from '../spinner/Spinner';
-import ErrorMessage from '../errorMessage/ErrorMessage';
 import useMarvelService from '../../services/MarvelService';
+import setContent from '../../utils/setContent';
 
 const InfoPage = () => {
 
     const navigate = useNavigate();
     const {resourceId} = useParams();
-    const {loading, error, clearError, getComic, getCharacterByName} = useMarvelService();
-    const [resource, setResource] = useState(resourceId);
+    const {process, setProcess, getComic, getCharacterByName} = useMarvelService();
+    const [resource, setResource] = useState(null);
     
 
-    useEffect(async () => {
-        clearError();
-        if(/\d/.test(resourceId)){
-            await getComic(resourceId)
-            .then(data => setResource(data))
-        } else {
-            await getCharacterByName(resourceId)
-            .then(data => setResource(data[0]))
+    useEffect( () => {
+    
+        try {
+            loadingData(resourceId)
         }
-        
+        catch {
+            setProcess('error')
+        }
+           
     }, [resourceId])
+
+    const loadingData = async (data) => {
+        if(/\d/.test(data)){
+            await getComic(data)
+            .then(data => setResource(data))
+            
+        } else {
+            await getCharacterByName(data)
+            .then(data => setResource(data[0]))
+            
+        }
+        setProcess('confirmed');
+    } 
 
     function View(content) {
       
@@ -48,25 +59,24 @@ const InfoPage = () => {
         )
     }
 
-    const Loading = loading ? <Spinner/> : null;
-    const Error = error ? <ErrorMessage/> : null;
-    const Content = loading || error ? null : View(resource);
-
     return (
         <>
-            <Helmet>
-                <meta
-                    name="Info page"
-                    content={`${resource.name}`}
-                    />
-                <title>{/\d/.test(resourceId) ? `${resource.name} comic book` : 
-                                                `Information about ${resource.name}`}
-                </title>
-            </Helmet>
+            {resource ? 
+                    <Helmet>
+                        <meta
+                            name="Info page"
+                            content={`${resource.name}`}
+                            />
+                        <title>{/\d/.test(resourceId) ? 
+                                     `${resource.name} comic book` : 
+                                    `Information about ${resource.name}`
+                                }
+                        </title>
+                    </Helmet> :
+                    null
+            }
             <div className="single-comic">
-                {Loading}
-                {Error}
-                {Content}
+                    {setContent(process, View, resource)}
                 <div onClick={() => navigate(-1)} className="single-comic__back">To back</div>
             </div>
         </>

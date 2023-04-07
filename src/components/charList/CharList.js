@@ -8,15 +8,28 @@ import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 
 
+const setContent = (process, Component, data, focusOnItem) => {
+    switch (process) {
+        case 'waiting':
+            return Component(data, focusOnItem, true);
+        case 'loading':
+            return Component(data, focusOnItem, true);
+        case 'confirmed':
+            return Component(data, focusOnItem);
+        case 'error':
+            return Component(data, focusOnItem, false);            
+        default:
+            throw new Error('Unexpected process state');
+    }
+}
+
 const CharList = (props) => {
     
     const [chars, setChars] = useState([]);
-    const [loadedChars, setLoadedChars] = useState(0);
-    const [loadingNewChars, setLoadingNewChars] = useState(false);
-    const [offset, setOffset] = useState(200);
+    const [offset, setOffset] = useState(201);
     
 
-    const {clearError, error, loading, getAllCharacters} = useMarvelService();
+    const {loading, process, setProcess, getAllCharacters} = useMarvelService();
 
     useEffect(() => {
         onSetCharacters()
@@ -24,15 +37,16 @@ const CharList = (props) => {
 
     const onCharactersLoaded = (newChars) => {
         setChars(chars => [...chars, ...newChars]);
-        setLoadingNewChars(false);
         setOffset(offset => offset + 9);
-        setLoadedChars(loadedChars => loadedChars + 9)
+        setProcess('confirmed')
     }
 
 
     const onSetCharacters = () => {
+        setProcess('loading')
         getAllCharacters(offset)
-        .then(onCharactersLoaded)
+            .then(onCharactersLoaded)
+            .catch(() => setProcess('error'))
         
     }
     
@@ -44,16 +58,19 @@ const CharList = (props) => {
         itemRefs.current[i].focus();
     }
 
-    const onSetNewCharacters = () => {
-        clearError();
-        setLoadingNewChars(true);
-        getAllCharacters(offset)
-            .then(onCharactersLoaded)
+    
+    const View = (charList, focusOnItem, status = null) => {
+        const CharCards = CardsWithChar(charList, focusOnItem);
+        if(status !== null){
+            const StageCards = CardWithStage(status);
+            return [...CharCards, ...StageCards];
+        }
+    
+        return [...CharCards];
     }
-
-    function ViewContent(charsList) {
+    
+    function CardsWithChar(charsList, focusOnItem) {
         const charItems = charsList.map((el, i) => {
-            if(loadedChars >= i){
                 const {thumbnail, name, id} = el;
                 const imgClass = thumbnail.includes('image_not_available') ? {objectFit: 'unset'} : null;
                 return (
@@ -61,7 +78,11 @@ const CharList = (props) => {
                         <li className='char__item'
                             ref={el => itemRefs.current[i] = el}        
                             tabIndex='0'
-                            onKeyDown={(e) => {if(e.code === 'Enter') {focusOnItem(i); props.onSelectedChar(id)}}}
+                            onKeyDown={(e) => {
+                                                if(e.code === 'Enter') {
+                                                    focusOnItem(i); 
+                                                    props.onSelectedChar(id)
+                                               }}}
                             onClick={() => {
                                             props.onSelectedChar(id)
                                             focusOnItem(i)
@@ -71,65 +92,39 @@ const CharList = (props) => {
                         </li>
                     </CSSTransition>
                 )
-            }
-        })
-        return (
-            <ul className='char__grid'>
-            <TransitionGroup component={null}>
-                {charItems}
-            </TransitionGroup>
-            </ul>
-        )
+            })
+        return charItems;
     }
     
-    function ViewLoadOrError(status) {
-        let image, description;
-        const stage = status,
-              arr = [];
-
-        if(stage === 'spinner'){
-            image = Spinner()
-            description='Please wait '        
-        } else if(stage === 'error'){
-            image = ErrorMessage()
-            description='Something Error :('
-        }
-    
-        while (arr.length < 9) {
-            arr.push(
-                    <li className="char__item" key={arr.length}>
-                        {image}
-                        <div className="char__name">{description}</div>
-                    </li>
+    function CardWithStage(status) {
+        const StageCards = [];
+        while(StageCards.length < 9) {
+            StageCards.push(
+                <CSSTransition timeout={500} key={`stage${StageCards.length}`}>
+                <li className="char__item">
+                    {status ? <Spinner/> : <ErrorMessage/>}
+                    <div className="char__name">{status ? 'Please wait ' : 'Something Error :('}</div>
+                </li>
+                </CSSTransition>
             )
         }
-        
-        return (
-            <ul className='char__grid'>
-                {arr}
-            </ul>
-        )
+        return StageCards;   
     }
-    
-    const items = ViewContent(chars);
-    const Loading = loading && chars.length === 0 ? ViewLoadOrError('spinner') : null;
-    const LoadingNew = loadingNewChars && !error ? ViewLoadOrError('spinner') : null;
-    const Error = error && !loadingNewChars ? ViewLoadOrError('error') : null;
-    const ErrorNew = error && loadingNewChars ? ViewLoadOrError('error') : null;
+
+    const elements = useMemo(() => setContent(process, View, chars, focusOnItem), [process]);
+
     return (
         <div className="char__list">
-            
-                {Loading}
-                {Error}
-                {items}
-                {LoadingNew}
-                {ErrorNew}
-            
+                <div className="Char__grid">
+                    <TransitionGroup className="char__grid">
+                    {elements}
+                    </TransitionGroup>
+                </div>
             <button 
                 className="button button__main button__long"
                 style={{display: `${chars.length > 63 ? 'none' : 'block'}`}}
-                disabled={loadingNewChars && !error}
-                onClick={onSetNewCharacters}>
+                disabled={loading}
+                onClick={onSetCharacters}>
                 <div className="inner">load more</div>
             </button>
         </div>

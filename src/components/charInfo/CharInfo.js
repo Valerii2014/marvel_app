@@ -2,29 +2,51 @@ import './charInfo.scss';
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Spinner from '../spinner/Spinner';
-import ErrorMessage from '../errorMessage/ErrorMessage';
+import { CSSTransition  } from 'react-transition-group';
 import useMarvelService from '../../services/MarvelService';
 import Skeleton from '../skeleton/Skeleton';
+import Spinner from '../spinner/Spinner';
+import ErrorMessage from '../errorMessage/ErrorMessage';
 
+
+
+const setContent = (process, Component, data) => {
+    switch (process) {
+        case 'waiting':
+            return <Skeleton/>;
+        case 'loading':
+            return <Spinner/>;
+        case 'confirmed':
+            return Component(data);
+        case 'error':
+            return <ErrorMessage/>;            
+        default:
+            throw new Error('Unexpected process state');
+    }
+}
 
 const CharInfo = (props) => {
 
     const [char, setChar] = useState(null);
-    const {error, loading, getCharacter, clearError} = useMarvelService();
+    const {getCharacter, process, setProcess} = useMarvelService();
 
-    useEffect(() => {clearError(); onCharLoad(props.idSelectedChar)}, [props.idSelectedChar])
+    useEffect(() => onCharLoading(props.idSelectedChar), [props.idSelectedChar])
 
-    const onCharLoad = (id) => {
-        if(id){
+    const onCharLoading = (id) => {
+        if(!id) return;
+
+        setChar(null);
         getCharacter(id)
-        .then(char => setChar(char))
-        }
+            .then(charLoaded) 
     } 
     
-    const View = (char) => {
-    if(char){
-        const {name, thumbnail, description, homepage, wiki, comics} = char;
+    const charLoaded = (char) => {
+        setChar(char);
+        setProcess('confirmed')
+    }
+
+    const View = (data) => {
+        const {name, thumbnail, description, comics} = data;
 
         const descrUpdate = description === 'There is no description' ? 
                             "The character description missing" :
@@ -40,12 +62,12 @@ const CharInfo = (props) => {
                         <div>
                             <div className="char__info-name">{name}</div>
                             <div className="char__btns">
-                                <a href={homepage} className="button button__main">
+                                <Link to={`/characters/${name}`} className="button button__main">
                                     <div className="inner">homepage</div>
-                                </a>
-                                <a href={wiki} className="button button__secondary">
+                                </Link>
+                                <Link to={`/characters/${name}`} className="button button__secondary">
                                     <div className="inner">Wiki</div>
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -57,7 +79,7 @@ const CharInfo = (props) => {
                         {Comics(comics)}
                     </ul>
             </>
-    )}}
+    )}
 
     const Comics = (comicsList) => {
 
@@ -80,18 +102,21 @@ const CharInfo = (props) => {
         }))
     }
 
-    const SkeletonWindow = error || (loading && props.idSelectedChar) || char ? null : Skeleton(),
-          Loading = loading && props.idSelectedChar ? Spinner() : null,
-          Error = error ? ErrorMessage() : null,
-          Content = char && !loading && !error ? View(char) : null;
+    // const SkeletonWindow = error || (loading && props.idSelectedChar) || char ? null : Skeleton(),
+    //       Loading = loading && props.idSelectedChar ? Spinner() : null,
+    //       Error = error ? ErrorMessage() : null,
+    //       Content = char && !loading && !error ? View(char) : null;
 
     return (
-        <div className="char__info">
-            {SkeletonWindow}
-            {Loading}
-            {Error}
-            {Content}
-        </div>
+        <CSSTransition 
+                in={char ? true : false}
+                timeout={1500}
+                className='char__info'
+        >
+            <div className="char__info">
+                {setContent(process, View, char)}
+            </div>
+        </CSSTransition>
     )
 }
 

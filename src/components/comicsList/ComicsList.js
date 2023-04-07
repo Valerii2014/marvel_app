@@ -6,24 +6,46 @@ import useMarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 
+
+const setContent = (process, Component, data) => {
+    switch (process) {
+        case 'waiting':
+            return Component(data);
+        case 'loading':
+            return data.length > 0 ? Component(data) : <Spinner/>;
+        case 'confirmed':
+            return Component(data);
+        case 'error':
+            return <ErrorMessage/>;            
+        default:
+            throw new Error('Unexpected process state');
+    }
+}
+
 const ComicsList = () => {
 
-    const {loading, error, getAllComics} = useMarvelService();
-    const [comicsesList, setComicsesList] = useState([]),
-          [offset, setOffset] = useState(20);
+    const {process, setProcess, getAllComics} = useMarvelService(),
+          [comicsesList, setComicsesList] = useState([]),
+          [offset, setOffset] = useState(21);
 
-    
-    const onComicsesList = async (offset) => {
+    const onComicsLoaded = (newComics) => {
+        setComicsesList(comicsesList => [...comicsesList, ...newComics]);
+        setOffset(offset => offset + 8);
+        setProcess('confirmed');
+    }
+
+    const onLoadingComicses = async (offset) => {
+        setProcess('loading')
         await getAllComics(offset)
-        .then(res => setComicsesList(comicsesList => [...comicsesList, ...res]))
-        setOffset(offset => offset + 8)
+        .then(onComicsLoaded)
+        .catch(() => setProcess('error'))
     }
     
-    useEffect(async () => await onComicsesList(offset), [])
+    useEffect(async () => await onLoadingComicses(offset), [])
 
     
-    function View(comics) {
-        const res = comics.map((comics, i) => {
+    const View = (data) => {
+        const res = data.map((comics, i) => {
             const {name, thumbnail, price, id} = comics;
             return (
                 <li className="comics__item" key={i}>
@@ -35,25 +57,23 @@ const ComicsList = () => {
                 </li>
             )
         })
-        return res;
+        return (
+            <ul className="comics__grid">
+                {res}
+            </ul>
+        )
     }
     
-    const Content = View(comicsesList),
-          Loading = loading ? Spinner() : null,
-          Error = error ? ErrorMessage() : null;
+    
 
     return (
         <div className="comics__list">
-                {Loading}
-                {Error}
-            <ul className="comics__grid">
-                {Content}
-            </ul>
+              {setContent(process, View, comicsesList)}
             <button 
                 className="button button__main button__long"
                 style={{display: `${comicsesList.length >= 22 ? 'none' : 'block'}`}}
-                disabled={loading}
-                onClick={() => onComicsesList(offset)}>
+                disabled={process === 'loading' ? true : false}
+                onClick={() => onLoadingComicses(offset)}>
                 <div className="inner">load more</div>
             </button>
         </div>

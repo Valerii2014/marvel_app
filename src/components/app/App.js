@@ -19,7 +19,7 @@ const App = () => {
                         <Route path='/characters/:resourceId' element={<InfoPage/>}/>
                     </Routes>
                 </main>
-        </div>
+            </div>
         </Router>
     )
 }

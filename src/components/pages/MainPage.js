@@ -33,12 +33,12 @@ const MainPage = () => {
                     <CharList onSelectedChar={onSelectedChar}/>
                 </ErrorBoundary>
                 <div className="wrapper">
-                <ErrorBoundary>
-                    <CharInfo idSelectedChar={selectedChar}/>
-                </ErrorBoundary>
-                <ErrorBoundary>
-                    <SearchCharForm/>
-                </ErrorBoundary>
+                    <ErrorBoundary>
+                        <CharInfo idSelectedChar={selectedChar}/>
+                    </ErrorBoundary>
+                    <ErrorBoundary>
+                        <SearchCharForm/>
+                    </ErrorBoundary>
                 </div>
             </div>
             <img className="bg-decoration" src={decoration} alt="vision"/>
