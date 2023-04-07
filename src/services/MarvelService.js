@@ -6,7 +6,7 @@ const useMarvelService = () => {
     const {request, process, setProcess} = useHttp();
 
     const _apiBase = 'https://gateway.marvel.com:443/v1/public/';
-    const _apiKey = 'apikey=7e84861ae7b14b8d93f0e54bda0ab247';
+    const _apiKey = 'apikey=      ***your_APIkey***    ';
 
     const getCharacterByName = async (name) => {
         const res = await request(`${_apiBase}characters?name=${name}&${_apiKey}`);
